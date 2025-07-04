@@ -1,0 +1,5 @@
+description: "The following are binary choice questions (with answers) about whether the given answer is correct for a law question. Think step by step and then finish your answer with \"the answer is (X)\" where X is the correct letter choice (A or B).\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_binary_law"
+task_alias: "law"
+process_docs: !function utils.process_law 

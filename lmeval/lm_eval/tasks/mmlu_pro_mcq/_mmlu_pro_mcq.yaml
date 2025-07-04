@@ -1,0 +1,23 @@
+group: mmlu_pro_mcq
+task:
+  - mmlu_pro_mcq_biology
+  - mmlu_pro_mcq_business
+  - mmlu_pro_mcq_chemistry
+  - mmlu_pro_mcq_computer_science
+  - mmlu_pro_mcq_economics
+  - mmlu_pro_mcq_engineering
+  - mmlu_pro_mcq_health
+  - mmlu_pro_mcq_history
+  - mmlu_pro_mcq_law
+  - mmlu_pro_mcq_math
+  - mmlu_pro_mcq_other
+  - mmlu_pro_mcq_philosophy
+  - mmlu_pro_mcq_physics
+  - mmlu_pro_mcq_psychology
+aggregate_metric_list:
+  - aggregation: mean
+    metric: exact_match
+    weight_by_size: true
+    filter_list: custom-extract
+metadata:
+  version: 2.0

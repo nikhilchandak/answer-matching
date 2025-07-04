@@ -1,0 +1,5 @@
+description: "The following are binary choice questions (with answers) about whether the given answer is correct for a computer science question. Think step by step and then finish your answer with \"the answer is (X)\" where X is the correct letter choice (A or B).\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_binary_computer_science"
+task_alias: "computer science"
+process_docs: !function utils.process_computer_science 

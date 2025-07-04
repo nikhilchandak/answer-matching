@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotator Disagreement Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .disagreement-container {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .toggle-section {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .toggle-content {
+            display: none;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .rating-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .rating-column {
+            flex: 1;
+            padding: 0 10px;
+            text-align: center;
+        }
+        .rating-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .field-label {
+            font-weight: bold;
+        }
+        .nav-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        #disagreementSelector {
+            width: 300px;
+        }
+        .disagreement-score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .rating-type-pill {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Annotator Disagreement Analysis</h1>
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <p>Found <strong>{{ disagreement_count }}</strong> disagreements for <span class="rating-type-pill">{{ rating_type }}</span></p>
+            <div>
+                <p>Comparing: <strong>{{ annotator1_name }}</strong> vs <strong>{{ annotator2_name }}</strong></p>
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <button id="prevBtn" class="btn btn-primary">Previous</button>
+            <div>
+                <label for="disagreementSelector">Jump to Question:</label>
+                <select id="disagreementSelector" class="form-select select2">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <button id="nextBtn" class="btn btn-primary">Next</button>
+        </div>
+        
+        <div id="disagreementContainer" class="disagreement-container">
+            <div id="loadingIndicator">Loading disagreements...</div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        let currentDisagreementId = null;
+        let disagreementIds = [];
+        let annotator1Name = "{{ annotator1_name }}";
+        let annotator2Name = "{{ annotator2_name }}";
+        let ratingType = "{{ rating_type }}";
+        
+        // Initialize Select2
+        $(document).ready(function() {
+            $('.select2').select2();
+            fetchDisagreements();
+        });
+        
+        // Fetch all disagreements
+        function fetchDisagreements() {
+            fetch('/api/disagreements')
+                .then(response => response.json())
+                .then(data => {
+                    disagreementIds = data.disagreements;
+                    populateSelector(disagreementIds);
+                    if (disagreementIds.length > 0) {
+                        currentDisagreementId = disagreementIds[0];
+                        $('#disagreementSelector').val(currentDisagreementId).trigger('change');
+                        fetchDisagreement(currentDisagreementId);
+                    } else {
+                        $('#loadingIndicator').text('No disagreements found.');
+                    }
+                });
+        }
+        
+        // Populate the selector dropdown
+        function populateSelector(ids) {
+            const selector = $('#disagreementSelector');
+            selector.empty();
+            
+            ids.forEach(id => {
+                selector.append(new Option(`Question ${id}`, id));
+            });
+            
+            selector.trigger('change');
+        }
+        
+        // Fetch a specific disagreement
+        function fetchDisagreement(disagreementId) {
+            $('#loadingIndicator').show();
+            $('#disagreementContent').remove();
+            
+            fetch(`/api/disagreement/${disagreementId}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentDisagreementId = disagreementId;
+                    renderDisagreement(data.disagreement, data.model_data);
+                    updateNavButtons();
+                })
+                .catch(error => {
+                    console.error('Error fetching disagreement:', error);
+                    $('#loadingIndicator').text('Error loading disagreement. Please try another.');
+                });
+        }
+        
+        // Render disagreement details
+        function renderDisagreement(disagreement, modelData) {
+            const container = document.getElementById('disagreementContainer');
+            container.innerHTML = '';
+            
+            const content = document.createElement('div');
+            content.id = 'disagreementContent';
+            
+            // Get annotation data
+            const annotation1 = disagreement.annotation1;
+            const annotation2 = disagreement.annotation2;
+            const disagreementScore = disagreement.disagreement_score;
+            
+            // Get relevant values
+            const questionText = annotation1.question_text;
+            const answer = annotation1.answer;
+            const response = annotation1.response;
+            
+            content.innerHTML = `
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Question ID: ${disagreement.question_id}</h3>
+                        <div class="disagreement-score">Disagreement: ${disagreementScore}</div>
+                    </div>
+                    
+                    <p><span class="field-label">Question:</span> ${questionText}</p>
+                    <p><span class="field-label">Reference Answer:</span> ${answer}</p>
+                    <p><span class="field-label">Model Response:</span> ${response}</p>
+                    
+                    <div class="rating-display">
+                        <div class="rating-column">
+                            <h4>${annotator1Name}</h4>
+                            <div class="rating-value">${annotation1[ratingType]}</div>
+                        </div>
+                        <div class="rating-column">
+                            <h4>${annotator2Name}</h4>
+                            <div class="rating-value">${annotation2[ratingType]}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="toggle-section" onclick="toggleSection('commentsToggle')">
+                            <strong>Show/Hide Annotator Comments</strong>
+                        </div>
+                        <div id="commentsToggle" class="toggle-content">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>${annotator1Name} Comments:</h5>
+                                    <p>${annotation1.comments || 'No comments'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>${annotator2Name} Comments:</h5>
+                                    <p>${annotation2.comments || 'No comments'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add model data section if available
+            if (modelData && Object.keys(modelData).length > 0) {
+                const modelSection = document.createElement('div');
+                modelSection.innerHTML = `
+                    <div class="toggle-section" onclick="toggleSection('modelToggle')">
+                        <strong>Show/Hide Additional Model Data</strong>
+                    </div>
+                    <div id="modelToggle" class="toggle-content">
+                        <p><span class="field-label">Model:</span> ${modelData.model || 'N/A'}</p>
+                        <p><span class="field-label">Options:</span></p>
+                        <ol type="A">
+                            ${(modelData.options || []).map((option, index) => `
+                                <li>${option} ${index === modelData.answer_index ? '✓' : ''}</li>
+                            `).join('')}
+                        </ol>
+                        <p><span class="field-label">Dataset:</span> ${modelData.dataset || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="toggle-section" onclick="toggleSection('deepseekToggle')">
+                        <strong>Show/Hide Deepseek Evaluations</strong>
+                    </div>
+                    <div id="deepseekToggle" class="toggle-content">
+                        <p><span class="field-label">Deepseek Score:</span> ${modelData["score_deepseek-chat-v3-0324"] || 'N/A'}</p>
+                        <p><span class="field-label">Deepseek Response:</span></p>
+                            <div class="p-3 border rounded bg-light">
+                                ${(() => {
+                                    const deepseekResponse = modelData["response_deepseek-chat-v3-0324"];
+                                    if (deepseekResponse && typeof deepseekResponse === 'string') {
+                                        return deepseekResponse.replace(/\n/g, '<br>');
+                                    } else if (deepseekResponse && typeof deepseekResponse === 'object') {
+                                        return JSON.stringify(deepseekResponse, null, 2).replace(/\n/g, '<br>');
+                                    } else {
+                                        return 'N/A';
+                                    }
+                                })()}
+                        </div>
+                    </div>
+                `;
+                
+                content.appendChild(modelSection);
+            }
+            
+            container.appendChild(content);
+            $('#loadingIndicator').hide();
+        }
+        
+        // Toggle sections
+        function toggleSection(id) {
+            const element = document.getElementById(id);
+            element.style.display = element.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // Update navigation buttons
+        function updateNavButtons() {
+            const currentIndex = disagreementIds.indexOf(currentDisagreementId);
+            
+            document.getElementById('prevBtn').disabled = currentIndex <= 0;
+            document.getElementById('nextBtn').disabled = currentIndex >= disagreementIds.length - 1;
+        }
+        
+        // Event listeners for navigation
+        document.getElementById('prevBtn').addEventListener('click', function() {
+            const currentIndex = disagreementIds.indexOf(currentDisagreementId);
+            if (currentIndex > 0) {
+                const prevId = disagreementIds[currentIndex - 1];
+                $('#disagreementSelector').val(prevId).trigger('change');
+                fetchDisagreement(prevId);
+            }
+        });
+        
+        document.getElementById('nextBtn').addEventListener('click', function() {
+            const currentIndex = disagreementIds.indexOf(currentDisagreementId);
+            if (currentIndex < disagreementIds.length - 1) {
+                const nextId = disagreementIds[currentIndex + 1];
+                $('#disagreementSelector').val(nextId).trigger('change');
+                fetchDisagreement(nextId);
+            }
+        });
+        
+        $('#disagreementSelector').on('change', function() {
+            const selectedId = $(this).val();
+            if (selectedId && selectedId !== currentDisagreementId) {
+                fetchDisagreement(selectedId);
+            }
+        });
+    </script>
+</body>
+</html> 

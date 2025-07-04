@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about computer science.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_computer_science"
+task_alias: "computer science"
+process_docs: !function utils.process_computer_science

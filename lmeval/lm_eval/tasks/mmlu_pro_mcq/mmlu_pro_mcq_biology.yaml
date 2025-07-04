@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about biology.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_biology"
+task_alias: "biology"
+process_docs: !function utils.process_biology

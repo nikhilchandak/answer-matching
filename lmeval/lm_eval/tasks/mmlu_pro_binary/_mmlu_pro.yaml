@@ -1,0 +1,23 @@
+group: mmlu_pro_binary
+task:
+  - mmlu_pro_binary_biology
+  - mmlu_pro_binary_business
+  # - mmlu_pro_binary_chemistry
+  # - mmlu_pro_binary_computer_science
+  # - mmlu_pro_binary_economics
+  # - mmlu_pro_binary_engineering
+  # - mmlu_pro_binary_health
+  - mmlu_pro_binary_history
+  # - mmlu_pro_binary_law
+  # - mmlu_pro_binary_math
+  # - mmlu_pro_binary_other
+  # - mmlu_pro_binary_philosophy
+  # - mmlu_pro_binary_physics
+  # - mmlu_pro_binary_psychology
+aggregate_metric_list:
+  - aggregation: mean
+    metric: exact_match
+    weight_by_size: true
+    filter_list: custom-extract
+metadata:
+  version: 1.0 

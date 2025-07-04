@@ -1,0 +1,33 @@
+task: gpqa_diamond_verify
+dataset_path: shash42/GPQA-Diamond-Verify
+# dataset_name: gpqa_diamond
+# task: gpqa_free
+test_split: train
+output_type: generate_until
+process_docs: !function utils.process_docs
+doc_to_text: !function utils.doc_to_text
+doc_to_target: option_correct
+filter_list:
+  - name: "custom-extract"
+    filter:
+      - function: "regex"
+        regex_pattern: 'answer is \(?([AB])\)?'
+      - function: "take_first"
+generation_kwargs:
+  until:
+    - "</s>"
+    - "Q:"
+    - "<|im_end|>"
+  max_gen_toks: 2048
+  do_sample: false
+  temperature: 0.0
+num_fewshot: 0
+repeats: 5
+metric_list:
+  - metric: exact_match
+    aggregation: mean
+    higher_is_better: true
+    ignore_case: true
+    ignore_punctuation: true
+metadata:
+  version: 2.1

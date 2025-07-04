@@ -1,0 +1,38 @@
+lmeval/env
+*.pyc
+lmeval/output/
+lmeval/data/
+lmeval/lm_cache
+lmeval/.idea
+lmeval/build
+lmeval/dist
+lmeval/*.egg-info
+lmeval/venv
+lmeval/.venv
+lmeval/.vscode
+lmeval/temp
+lmeval/__pycache__
+lmeval/.ipynb_checkpoints
+lmeval/temp
+lmeval/test_logs/
+# IPython
+lmeval/profile_default/
+lmeval/ipython_config.py
+# don't track (the default location of) the cached requests
+lmeval/caching/.cache
+# don't track files created by wandb
+lmeval/wandb
+lmeval/examples/wandb
+# Add pycache
+__pycache__/
+src/debug/*
+src/openrouter_key.py
+src/inference/openrouter_key.py
+evalmodels/hf_token.txt
+wandb/
+TruthfulQA/
+mcq_classifier/TruthfulQA/
+plots/
+rank-plots/
+combined_samples_to_annotate.jsonl
+src/annotations/

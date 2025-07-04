@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .correct { color: green; font-weight: bold; }
+        .incorrect { color: red; }
+        .choice-container { margin-bottom: 10px; }
+        .probability-bar {
+            height: 20px;
+            background-color: #007bff;
+            margin-bottom: 5px;
+        }
+        .model1-bar { background-color: #007bff; }
+        .model2-bar { background-color: #28a745; }
+        .question-card {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .filters {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Model Comparison Visualizer</h1>
+        <p>Comparing: <strong>{{ model1_name }}</strong> vs <strong>{{ model2_name }}</strong></p>
+        
+        <div class="filters">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="comparisonFilter" class="form-label">Filter by Comparison:</label>
+                    <select id="comparisonFilter" class="form-select">
+                        <option value="all">All Questions</option>
+                        <option value="correct-correct">Both Models Correct</option>
+                        <option value="correct-wrong">Model 1 Correct, Model 2 Wrong</option>
+                        <option value="wrong-correct">Model 1 Wrong, Model 2 Correct</option>
+                        <option value="wrong-wrong">Both Models Wrong</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="domainFilter" class="form-label">Filter by Domain:</label>
+                    <select id="domainFilter" class="form-select">
+                        <option value="all">All Domains</option>
+                        {% for domain in domains %}
+                        <option value="{{ domain }}">{{ domain }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div id="questionsContainer"></div>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <button id="prevBtn" class="btn btn-primary" disabled>Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button id="nextBtn" class="btn btn-primary">Next</button>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 0;
+        const perPage = 10;
+        let totalQuestions = 0;
+        
+        // Function to fetch and display questions
+        function fetchQuestions() {
+            const comparisonFilter = document.getElementById('comparisonFilter').value;
+            const domainFilter = document.getElementById('domainFilter').value;
+            
+            fetch(`/api/questions?comparison=${comparisonFilter}&domain=${domainFilter}&page=${currentPage}&per_page=${perPage}`)
+                .then(response => response.json())
+                .then(data => {
+                    totalQuestions = data.total;
+                    renderQuestions(data.questions);
+                    updatePagination();
+                });
+        }
+        
+        // Function to render questions
+        function renderQuestions(questions) {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            if (questions.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No questions match the selected filters.</div>';
+                return;
+            }
+            
+            questions.forEach(question => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                
+                // Determine model names
+                const model1Name = question.model1.name;
+                const model2Name = question.model2.name;
+                
+                // Create card HTML
+                let choicesHtml = '';
+                question.choices.forEach((choice, idx) => {
+                    const isCorrectAnswer = idx === question.answer;
+                    const model1Proba = (question.model1.probas[idx] * 100).toFixed(2);
+                    const model2Proba = (question.model2.probas[idx] * 100).toFixed(2);
+                    
+                    choicesHtml += `
+                        <div class="choice-container">
+                            <div class="d-flex justify-content-between">
+                                <div class="w-50 pe-2">
+                                    <div>${String.fromCharCode(65 + idx)}. ${choice} ${isCorrectAnswer ? '✓' : ''}</div>
+                                </div>
+                                <div class="w-50">
+                                    <div class="d-flex justify-content-between">
+                                        <small>${model1Name}: ${model1Proba}%</small>
+                                        <small>${model2Name}: ${model2Proba}%</small>
+                                    </div>
+                                    <div class="progress" style="height: 10px;">
+                                        <div class="progress-bar model1-bar" style="width: ${model1Proba}%"></div>
+                                    </div>
+                                    <div class="progress" style="height: 10px;">
+                                        <div class="progress-bar model2-bar" style="width: ${model2Proba}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                card.innerHTML = `
+                    <h5 class="card-title">${question.question}</h5>
+                    <p class="card-text">
+                        <small>Domain: ${question.domain}</small>
+                    </p>
+                    <div class="choices mb-3">
+                        ${choicesHtml}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <div class="${question.model1.correct ? 'correct' : 'incorrect'}">
+                            ${model1Name}: ${question.model1.correct ? 'Correct' : 'Incorrect'}
+                        </div>
+                        <div class="${question.model2.correct ? 'correct' : 'incorrect'}">
+                            ${model2Name}: ${question.model2.correct ? 'Correct' : 'Incorrect'}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Function to update pagination controls
+        function updatePagination() {
+            const totalPages = Math.ceil(totalQuestions / perPage);
+            document.getElementById('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages}`;
+            
+            document.getElementById('prevBtn').disabled = currentPage === 0;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+        }
+        
+        // Event listeners
+        document.getElementById('comparisonFilter').addEventListener('change', () => {
+            currentPage = 0;
+            fetchQuestions();
+        });
+        
+        document.getElementById('domainFilter').addEventListener('change', () => {
+            currentPage = 0;
+            fetchQuestions();
+        });
+        
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                fetchQuestions();
+            }
+        });
+        
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentPage++;
+            fetchQuestions();
+        });
+        
+        // Initial load
+        document.addEventListener('DOMContentLoaded', fetchQuestions);
+    </script>
+</body>
+</html>

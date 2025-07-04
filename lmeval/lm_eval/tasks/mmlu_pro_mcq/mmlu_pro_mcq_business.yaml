@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about business.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_business"
+task_alias: "business"
+process_docs: !function utils.process_business

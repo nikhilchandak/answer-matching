@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about math.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_math"
+task_alias: "math"
+process_docs: !function utils.process_math

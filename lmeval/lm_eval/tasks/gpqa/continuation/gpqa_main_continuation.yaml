@@ -1,0 +1,5 @@
+dataset_name: gpqa_main
+description: GPQA main evaluation subset with continuation prompts
+tag: gpqa_continuation
+include: _gpqa_template.yaml
+task: gpqa_main_continuation

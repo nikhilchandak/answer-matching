@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about health.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_health"
+task_alias: "health"
+process_docs: !function utils.process_health

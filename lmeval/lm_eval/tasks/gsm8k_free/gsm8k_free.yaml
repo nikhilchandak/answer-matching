@@ -1,0 +1,36 @@
+task: gsm8k_free
+dataset_path: gsm8k
+dataset_name: main
+process_docs: !function utils.process_docs
+output_type: generate_until
+test_split: test
+doc_to_text:  !function utils.doc_to_text
+process_results: !function utils.process_results
+doc_to_target: '{{answer.split(''####'')[-1].strip() if answer is defined else target}}'
+# doc_to_target: "{{answer if few_shot is undefined else solution}}"
+filter_list:
+  - name: "custom-extract"
+    filter:
+      - function: "freeform_regex"
+        regex_pattern: "\\\\boxed\\{([^{}]*(?:\\{[^{}]*\\}[^{}]*)*)\\}"
+generation_kwargs:
+  until:
+    - "Problem:"
+    # - "</s>"
+    # - "Question:"
+    - "<|im_end|>"
+  do_sample: false
+  temperature: 0
+repeats: 3
+metric_list:
+  - metric: math_verify
+    aggregation: mean
+    higher_is_better: true
+num_fewshot: 0
+fewshot_config:
+  sampler: first_n
+  samples: !function utils.list_fewshot_samples
+metadata:
+  version: 2.0
+dataset_kwargs:
+  trust_remote_code: true

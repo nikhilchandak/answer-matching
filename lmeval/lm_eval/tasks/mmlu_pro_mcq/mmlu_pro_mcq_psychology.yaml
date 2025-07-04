@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about psychology.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_psychology"
+task_alias: "psychology"
+process_docs: !function utils.process_psychology

@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .question-container {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .toggle-section {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .toggle-content {
+            display: none;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .rating-question {
+            margin-bottom: 15px;
+        }
+        .rating-options {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+        .rating-option {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            padding: 8px;
+            margin: 0 3px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+        .rating-option.selected {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+        }
+        .calculator-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transform: translateY(calc(100% - 40px));
+            transition: transform 0.3s ease;
+        }
+        
+        .calculator-widget.expanded {
+            transform: translateY(0);
+        }
+        
+        .calculator-header {
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .calculator-body {
+            overflow: hidden;
+        }
+        
+        .calculator-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .calculator-result {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .save-status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .field-label {
+            font-weight: bold;
+        }
+        .nav-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        #questionSelector {
+            width: 300px;
+        }
+        .completed-question {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+        }
+        .select2-results__option--highlighted.completed-question,
+        .select2-results__option.completed-question {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+        }
+        
+        .select2-selection__rendered .completed-question {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+        }
+        
+        .result-good {
+            color: #198754; /* Bootstrap green */
+        }
+        
+        .result-bad {
+            color: #dc3545; /* Bootstrap red */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Annotation Interface</h1>
+        <p>Annotator ID: <strong>{{ annotator_id }}</strong></p>
+        
+        <div class="toggle-section" onclick="toggleSection('guidelinesToggle')">
+            <strong>Show/Hide Annotation Guidelines</strong>
+        </div>
+        <div id="guidelinesToggle" class="toggle-content">
+            <ol>
+                <li>For questions where what exactly to output (format / specificity etc.) seems unclear, use the "can question be answered in free-form" to mark it 'leaning no' or 'unsure'. Be strict with matching when the format/specificity is not same, only marking correct if model response is super-set of reference.</li>
+                <li>For numerical answer questions, compute relative error by putting the numbers in the provided widget.</li>
+                <li>When in doubt about whether an answer matches or not, or whether a different response is correct or not, use the options.</li>
+            </ol>
+        </div>
+        
+        <div class="toggle-section" onclick="toggleSection('keyboardShortcutsToggle')">
+            <strong>Keyboard Shortcuts</strong>
+        </div>
+        <div id="keyboardShortcutsToggle" class="toggle-content">
+            <ul>
+                <li><strong>Q, W, E, R, T</strong>: Select ratings 1-5 for the currently focused question</li>
+                <li><strong>↑ / ↓</strong>: Navigate between rating questions</li>
+                <li><strong>Page Up / Page Down</strong>: Navigate to previous/next question</li>
+            </ul>
+        </div>
+        
+        <div class="nav-controls">
+            <button id="prevBtn" class="btn btn-primary">Previous</button>
+            <div>
+                <label for="questionSelector">Jump to Question:</label>
+                <select id="questionSelector" class="form-select select2">
+                    {% for qid in question_ids %}
+                    <option value="{{ qid }}">Question {{ qid }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button id="nextBtn" class="btn btn-primary">Next</button>
+        </div>
+        
+        <div id="saveStatus" class="save-status"></div>
+        
+        <div id="annotationContainer" class="question-container">
+            <div id="loadingIndicator">Loading...</div>
+        </div>
+    </div>
+    
+    <!-- Calculator Widget -->
+    <div id="calculatorWidget" class="calculator-widget">
+        <div class="calculator-header" onclick="toggleCalculator()">
+            <span>Relative Error Calculator</span>
+            <span id="calculatorToggleIcon">▲</span>
+        </div>
+        <div class="calculator-body">
+            <div class="calculator-inputs">
+                <div class="input-group">
+                    <span class="input-group-text">Number 1</span>
+                    <input type="number" id="calcNum1" class="form-control">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text">Number 2</span>
+                    <input type="number" id="calcNum2" class="form-control">
+                </div>
+                <button id="calculateBtn" class="btn btn-primary">Calculate</button>
+            </div>
+            <div id="calculatorResult" class="calculator-result">Result: </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        let isMultiModel = {{ multi_model|tojson }};
+        let currentQuestionId = null;
+        let questionIds = [];
+        let annotations = {};
+        let completedQuestions = new Set();
+        let currentQuestion = null;
+        let currentFocusedRatingGroup = null;
+        
+        // Initialize Select2
+        $(document).ready(function() {
+            $('.select2').select2();
+        });
+        
+        // Fetch all question IDs
+        function fetchQuestionIds() {
+            fetch('/api/questions')
+                .then(response => response.json())
+                .then(data => {
+                    questionIds = data.question_ids.map(qid => String(qid));
+                    if (questionIds.length > 0) {
+                        currentQuestionId = questionIds[0];
+                        $('#questionSelector').val(currentQuestionId).trigger('change');
+                        fetchQuestion(currentQuestionId);
+                    }
+                });
+        }
+        
+        // Fetch a specific question
+        function fetchQuestion(questionId) {
+            $('#loadingIndicator').show();
+            $('#annotationForm').remove();
+            fetch(`/api/question/${questionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentQuestionId = String(questionId);
+                    currentQuestion = data.question;
+                    renderQuestion(data.question, data.annotations);
+                    updateNavButtons();
+                    updateCompletedQuestions();
+                })
+                .catch(error => {
+                    console.error('Error fetching question:', error);
+                    $('#loadingIndicator').text('Error loading question. Please try another.');
+                });
+        }
+        
+        // Render question and annotation form
+        function renderQuestion(question, existingAnnotations) {
+            const container = document.getElementById('annotationContainer');
+            container.innerHTML = '';
+            
+            // Create the form
+            const form = document.createElement('form');
+            form.id = 'annotationForm';
+            
+            // Ensure annotation values are integers
+            if (existingAnnotations) {
+                if (existingAnnotations.rating_match !== undefined) 
+                    existingAnnotations.rating_match = parseInt(existingAnnotations.rating_match);
+                if (existingAnnotations.rating_osq !== undefined) 
+                    existingAnnotations.rating_osq = parseInt(existingAnnotations.rating_osq);
+                if (existingAnnotations.rating_multians !== undefined) 
+                    existingAnnotations.rating_multians = parseInt(existingAnnotations.rating_multians);
+                if (existingAnnotations.rating_correct !== undefined) 
+                    existingAnnotations.rating_correct = parseInt(existingAnnotations.rating_correct);
+                
+                // For multi-model mode
+                if (existingAnnotations.rating_match && Array.isArray(existingAnnotations.rating_match)) {
+                    existingAnnotations.rating_match = existingAnnotations.rating_match.map(v => 
+                        v !== null && v !== undefined ? parseInt(v) : v);
+                }
+                
+                console.log("Loaded annotations:", existingAnnotations);
+            }
+            
+            // Question details
+            let formHtml = `
+                <div class="mb-4">
+                    <p><span class="field-label">Question:</span> ${question.question}</p>
+                    <p><span class="field-label">Category:</span> ${question.category || 'N/A'}</p>
+                    <p><span class="field-label">Answer:</span> ${question.target}</p>`;
+            
+            // Add options toggle section
+            formHtml += `
+                <div class="toggle-section" onclick="toggleSection('optionsToggle')">
+                    <strong>Show/Hide Options</strong>
+                </div>
+                <div id="optionsToggle" class="toggle-content">
+                    <ol type="A">
+                        ${question.options ? question.options.map((option, index) => `
+                            <li>${option} ${index === question.answer_index ? '✓' : ''}</li>
+                        `).join('') : 'No options available'}
+                    </ol>
+                </div>`;
+            
+            formHtml += `</div>`;
+            
+            // Start the rating section
+            formHtml += `<div class="rating-section">`;
+            
+            // For multi-model, ask the common questions first, then model-specific questions
+            if (isMultiModel) {
+                // Log HuggingFace dataset values if they exist
+                if (existingAnnotations?.rating_osq || existingAnnotations?.rating_multians) {
+                    console.log("Using pre-loaded values from HuggingFace dataset:");
+                    console.log("OSQ (Is non-MCQ?) value:", existingAnnotations.rating_osq);
+                    console.log("Multians (Is Unique?) value:", existingAnnotations.rating_multians);
+                }
+                
+                // Common questions first
+                formHtml += `
+                    <div class="rating-question">
+                        <div><strong>1. Is the sample (question, reference answer pair) specific enough that the answer can be given with just the question, without options, and doesn't refer or rely on the options?</strong></div>
+                        <div class="rating-options">
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 1 ? 'selected' : ''}" data-value="1" data-name="rating_osq">
+                                <input type="radio" id="osq1" name="rating_osq" value="1" ${existingAnnotations?.rating_osq === 1 ? 'checked' : ''} required hidden>
+                                <label for="osq1">Surely Not</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 2 ? 'selected' : ''}" data-value="2" data-name="rating_osq">
+                                <input type="radio" id="osq2" name="rating_osq" value="2" ${existingAnnotations?.rating_osq === 2 ? 'checked' : ''} hidden>
+                                <label for="osq2">Leaning No</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 3 ? 'selected' : ''}" data-value="3" data-name="rating_osq">
+                                <input type="radio" id="osq3" name="rating_osq" value="3" ${existingAnnotations?.rating_osq === 3 ? 'checked' : ''} hidden>
+                                <label for="osq3">Unsure</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 4 ? 'selected' : ''}" data-value="4" data-name="rating_osq">
+                                <input type="radio" id="osq4" name="rating_osq" value="4" ${existingAnnotations?.rating_osq === 4 ? 'checked' : ''} hidden>
+                                <label for="osq4">Leaning Yes</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 5 ? 'selected' : ''}" data-value="5" data-name="rating_osq">
+                                <input type="radio" id="osq5" name="rating_osq" value="5" ${existingAnnotations?.rating_osq === 5 ? 'checked' : ''} hidden>
+                                <label for="osq5">Surely Yes</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="rating-question">
+                        <div><strong>2. Does the question have a unique correct answer? Ignore paraphrases, count only semantic or functionally distinct answers. </strong></div>
+                        <div class="rating-options">
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 1 ? 'selected' : ''}" data-value="1" data-name="rating_multians">
+                                <input type="radio" id="multians1" name="rating_multians" value="1" ${existingAnnotations?.rating_multians === 1 ? 'checked' : ''} required hidden>
+                                <label for="multians1">Surely Not</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 2 ? 'selected' : ''}" data-value="2" data-name="rating_multians">
+                                <input type="radio" id="multians2" name="rating_multians" value="2" ${existingAnnotations?.rating_multians === 2 ? 'checked' : ''} hidden>
+                                <label for="multians2">Leaning No</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 3 ? 'selected' : ''}" data-value="3" data-name="rating_multians">
+                                <input type="radio" id="multians3" name="rating_multians" value="3" ${existingAnnotations?.rating_multians === 3 ? 'checked' : ''} hidden>
+                                <label for="multians3">Unsure</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 4 ? 'selected' : ''}" data-value="4" data-name="rating_multians">
+                                <input type="radio" id="multians4" name="rating_multians" value="4" ${existingAnnotations?.rating_multians === 4 ? 'checked' : ''} hidden>
+                                <label for="multians4">Leaning Yes</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 5 ? 'selected' : ''}" data-value="5" data-name="rating_multians">
+                                <input type="radio" id="multians5" name="rating_multians" value="5" ${existingAnnotations?.rating_multians === 5 ? 'checked' : ''} hidden>
+                                <label for="multians5">Surely Yes</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h4>Model Responses</h4>`;
+                
+                // Now add model-specific questions
+                if (question.models && question.responses) {
+                    question.models.forEach((model, index) => {
+                        const response = question.responses[index] || '';
+                        const modelRating = existingAnnotations?.rating_match && 
+                                           Array.isArray(existingAnnotations.rating_match) ? 
+                                           existingAnnotations.rating_match[index] : null;
+                        
+                        formHtml += `
+                        <div class="model-response-section mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <strong>Model Response #${index + 1}</strong>
+                                </div>
+                                <div class="card-body">
+                                    <p>${response}</p>
+                                    
+                                    <div class="rating-question">
+                                        <div><strong>Does this Response match the Answer semantically or functionally?</strong></div>
+                                        <div class="rating-options">
+                                            <div class="rating-option ${modelRating === 1 ? 'selected' : ''}" data-value="1" data-name="rating_match_${index}">
+                                                <input type="radio" id="match${index}_1" name="rating_match_${index}" value="1" ${modelRating === 1 ? 'checked' : ''} required hidden>
+                                                <label for="match${index}_1">Surely Not</label>
+                                            </div>
+                                            <div class="rating-option ${modelRating === 2 ? 'selected' : ''}" data-value="2" data-name="rating_match_${index}">
+                                                <input type="radio" id="match${index}_2" name="rating_match_${index}" value="2" ${modelRating === 2 ? 'checked' : ''} hidden>
+                                                <label for="match${index}_2">Leaning No</label>
+                                            </div>
+                                            <div class="rating-option ${modelRating === 3 ? 'selected' : ''}" data-value="3" data-name="rating_match_${index}">
+                                                <input type="radio" id="match${index}_3" name="rating_match_${index}" value="3" ${modelRating === 3 ? 'checked' : ''} hidden>
+                                                <label for="match${index}_3">Unsure</label>
+                                            </div>
+                                            <div class="rating-option ${modelRating === 4 ? 'selected' : ''}" data-value="4" data-name="rating_match_${index}">
+                                                <input type="radio" id="match${index}_4" name="rating_match_${index}" value="4" ${modelRating === 4 ? 'checked' : ''} hidden>
+                                                <label for="match${index}_4">Leaning Yes</label>
+                                            </div>
+                                            <div class="rating-option ${modelRating === 5 ? 'selected' : ''}" data-value="5" data-name="rating_match_${index}">
+                                                <input type="radio" id="match${index}_5" name="rating_match_${index}" value="5" ${modelRating === 5 ? 'checked' : ''} hidden>
+                                                <label for="match${index}_5">Surely Yes</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                }
+            } else {
+                // Single model mode - original layout
+                formHtml += `
+                    <p><span class="field-label">Response:</span> ${question.filtered_resps}</p>
+                    
+                    <div class="toggle-section" onclick="toggleSection('fullResponseToggle')">
+                        <strong>Show/Hide Full Model Response</strong>
+                    </div>
+                    <div id="fullResponseToggle" class="toggle-content">
+                        <p>${question.resps || 'No full response available'}</p>
+                    </div>
+                    
+                    <div class="toggle-section" onclick="toggleSection('modelToggle')">
+                        <strong>Show/Hide Model Info</strong>
+                    </div>
+                    <div id="modelToggle" class="toggle-content">
+                        <p><strong>Model:</strong> ${question.model}</p>
+                        <p><strong>Thinking:</strong> ${question.thinking}</p>
+                        <p><strong>Completion Tokens:</strong> ${question.completion_tokens}</p>
+                    </div>
+                
+                    <div class="rating-question">
+                        <div><strong>1. Does the Response match the Answer semantically or functionally?</strong></div>
+                        <div class="rating-options">
+                            <div class="rating-option ${existingAnnotations?.rating_match === 1 ? 'selected' : ''}" data-value="1" data-name="rating_match">
+                                <input type="radio" id="match1" name="rating_match" value="1" ${existingAnnotations?.rating_match === 1 ? 'checked' : ''} required hidden>
+                                <label for="match1">Surely Not</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_match === 2 ? 'selected' : ''}" data-value="2" data-name="rating_match">
+                                <input type="radio" id="match2" name="rating_match" value="2" ${existingAnnotations?.rating_match === 2 ? 'checked' : ''} hidden>
+                                <label for="match2">Leaning No</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_match === 3 ? 'selected' : ''}" data-value="3" data-name="rating_match">
+                                <input type="radio" id="match3" name="rating_match" value="3" ${existingAnnotations?.rating_match === 3 ? 'checked' : ''} hidden>
+                                <label for="match3">Unsure</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_match === 4 ? 'selected' : ''}" data-value="4" data-name="rating_match">
+                                <input type="radio" id="match4" name="rating_match" value="4" ${existingAnnotations?.rating_match === 4 ? 'checked' : ''} hidden>
+                                <label for="match4">Leaning Yes</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_match === 5 ? 'selected' : ''}" data-value="5" data-name="rating_match">
+                                <input type="radio" id="match5" name="rating_match" value="5" ${existingAnnotations?.rating_match === 5 ? 'checked' : ''} hidden>
+                                <label for="match5">Surely Yes</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="rating-question">
+                        <div><strong>2. Is the sample (question, reference answer pair) specific enough that the answer can be given with just the question, without options, and doesn't refer or rely on the options?</strong></div>
+                        <div class="rating-options">
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 1 ? 'selected' : ''}" data-value="1" data-name="rating_osq">
+                                <input type="radio" id="osq1" name="rating_osq" value="1" ${existingAnnotations?.rating_osq === 1 ? 'checked' : ''} required hidden>
+                                <label for="osq1">Surely Not</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 2 ? 'selected' : ''}" data-value="2" data-name="rating_osq">
+                                <input type="radio" id="osq2" name="rating_osq" value="2" ${existingAnnotations?.rating_osq === 2 ? 'checked' : ''} hidden>
+                                <label for="osq2">Leaning No</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 3 ? 'selected' : ''}" data-value="3" data-name="rating_osq">
+                                <input type="radio" id="osq3" name="rating_osq" value="3" ${existingAnnotations?.rating_osq === 3 ? 'checked' : ''} hidden>
+                                <label for="osq3">Unsure</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 4 ? 'selected' : ''}" data-value="4" data-name="rating_osq">
+                                <input type="radio" id="osq4" name="rating_osq" value="4" ${existingAnnotations?.rating_osq === 4 ? 'checked' : ''} hidden>
+                                <label for="osq4">Leaning Yes</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_osq === 5 ? 'selected' : ''}" data-value="5" data-name="rating_osq">
+                                <input type="radio" id="osq5" name="rating_osq" value="5" ${existingAnnotations?.rating_osq === 5 ? 'checked' : ''} hidden>
+                                <label for="osq5">Surely Yes</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="rating-question">
+                        <div><strong>3. Does the question have a unique correct answer? Ignore paraphrases, count only semantic or functionally distinct answers. </strong></div>
+                        <div class="rating-options">
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 1 ? 'selected' : ''}" data-value="1" data-name="rating_multians">
+                                <input type="radio" id="multians1" name="rating_multians" value="1" ${existingAnnotations?.rating_multians === 1 ? 'checked' : ''} required hidden>
+                                <label for="multians1">Surely Not</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 2 ? 'selected' : ''}" data-value="2" data-name="rating_multians">
+                                <input type="radio" id="multians2" name="rating_multians" value="2" ${existingAnnotations?.rating_multians === 2 ? 'checked' : ''} hidden>
+                                <label for="multians2">Leaning No</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 3 ? 'selected' : ''}" data-value="3" data-name="rating_multians">
+                                <input type="radio" id="multians3" name="rating_multians" value="3" ${existingAnnotations?.rating_multians === 3 ? 'checked' : ''} hidden>
+                                <label for="multians3">Unsure</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 4 ? 'selected' : ''}" data-value="4" data-name="rating_multians">
+                                <input type="radio" id="multians4" name="rating_multians" value="4" ${existingAnnotations?.rating_multians === 4 ? 'checked' : ''} hidden>
+                                <label for="multians4">Leaning Yes</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_multians === 5 ? 'selected' : ''}" data-value="5" data-name="rating_multians">
+                                <input type="radio" id="multians5" name="rating_multians" value="5" ${existingAnnotations?.rating_multians === 5 ? 'checked' : ''} hidden>
+                                <label for="multians5">Surely Yes</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="correctnessQuestionContainer" class="rating-question" style="display: none;">
+                        <div><strong>4. Is the model response correct even though it doesn't match the reference answer?</strong></div>
+                        <div class="rating-options">
+                            <div class="rating-option ${existingAnnotations?.rating_correct === 1 ? 'selected' : ''}" data-value="1" data-name="rating_correct">
+                                <input type="radio" id="correct1" name="rating_correct" value="1" ${existingAnnotations?.rating_correct === 1 ? 'checked' : ''} hidden>
+                                <label for="correct1">Surely Not</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_correct === 2 ? 'selected' : ''}" data-value="2" data-name="rating_correct">
+                                <input type="radio" id="correct2" name="rating_correct" value="2" ${existingAnnotations?.rating_correct === 2 ? 'checked' : ''} hidden>
+                                <label for="correct2">Leaning No</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_correct === 3 ? 'selected' : ''}" data-value="3" data-name="rating_correct">
+                                <input type="radio" id="correct3" name="rating_correct" value="3" ${existingAnnotations?.rating_correct === 3 ? 'checked' : ''} hidden>
+                                <label for="correct3">Unsure</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_correct === 4 ? 'selected' : ''}" data-value="4" data-name="rating_correct">
+                                <input type="radio" id="correct4" name="rating_correct" value="4" ${existingAnnotations?.rating_correct === 4 ? 'checked' : ''} hidden>
+                                <label for="correct4">Leaning Yes</label>
+                            </div>
+                            <div class="rating-option ${existingAnnotations?.rating_correct === 5 ? 'selected' : ''}" data-value="5" data-name="rating_correct">
+                                <input type="radio" id="correct5" name="rating_correct" value="5" ${existingAnnotations?.rating_correct === 5 ? 'checked' : ''} hidden>
+                                <label for="correct5">Surely Yes</label>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+            
+            // Common for both modes
+            formHtml += `
+                <div class="mt-4">
+                    <label for="comments" class="form-label"><strong>Additional Comments (optional):</strong></label>
+                    <textarea id="comments" name="comments" class="form-control" rows="3">${existingAnnotations?.comments || ''}</textarea>
+                </div>
+            </div>`;
+            
+            form.innerHTML = formHtml;
+            container.appendChild(form);
+            
+            // Handle rating option clicks
+            document.querySelectorAll('.rating-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const value = parseInt(this.dataset.value);
+                    const name = this.dataset.name;
+                    
+                    // Unselect all options in this group
+                    document.querySelectorAll(`.rating-option[data-name="${name}"]`).forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Select this option
+                    this.classList.add('selected');
+                    
+                    // Update hidden radio button
+                    document.querySelector(`input[name="${name}"][value="${value}"]`).checked = true;
+                    
+                    // Check conditions for question 4 visibility if not in multi-model mode
+                    if (!isMultiModel) {
+                        checkConditions();
+                    }
+                });
+            });
+            
+            // Add event listeners to detect question 4 conditions - only for single model mode
+            function checkConditions() {
+                if (isMultiModel) return;
+                
+                const matchValue = parseInt(document.querySelector('input[name="rating_match"]:checked')?.value || 0);
+                const multiansValue = parseInt(document.querySelector('input[name="rating_multians"]:checked')?.value || 0);
+                
+                const correctnessContainer = document.getElementById('correctnessQuestionContainer');
+                if (matchValue >= 1 && matchValue <= 3 && multiansValue >= 1 && multiansValue <= 3) {
+                    correctnessContainer.style.display = 'block';
+                } else {
+                    correctnessContainer.style.display = 'none';
+                    // Clear the correctness rating if the question is hidden
+                    document.querySelectorAll('input[name="rating_correct"]').forEach(radio => {
+                        radio.checked = false;
+                    });
+                    document.querySelectorAll('.rating-option[data-name="rating_correct"]').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                }
+            }
+            
+            // Initialize the visibility based on existing annotations
+            if (existingAnnotations && !isMultiModel) {
+                checkConditions();
+            }
+            
+            // Set up keyboard shortcuts for the current form
+            setupKeyboardShortcuts();
+            
+            $('#loadingIndicator').hide();
+        }
+        
+        // Set up keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            // Remove any existing event listener to prevent duplicates
+            document.removeEventListener('keydown', handleKeyDown);
+            
+            // Add the event listener
+            document.addEventListener('keydown', handleKeyDown);
+            
+            // Set initial focus group
+            setInitialFocusGroup();
+        }
+        
+        // Set initial focus group to the first rating question
+        function setInitialFocusGroup() {
+            const ratingGroups = document.querySelectorAll('.rating-question');
+            if (ratingGroups.length > 0) {
+                currentFocusedRatingGroup = ratingGroups[0].querySelector('.rating-options').dataset.name || 
+                                            ratingGroups[0].querySelector('.rating-option').dataset.name;
+                highlightFocusedGroup(currentFocusedRatingGroup);
+            }
+        }
+        
+        // Highlight the currently focused group
+        function highlightFocusedGroup(groupName) {
+            // Remove highlight from all groups
+            document.querySelectorAll('.rating-options').forEach(group => {
+                group.style.boxShadow = '';
+            });
+            
+            // Add highlight to current group
+            const options = document.querySelectorAll(`.rating-option[data-name="${groupName}"]`);
+            if (options.length > 0) {
+                const parent = options[0].closest('.rating-options');
+                if (parent) {
+                    parent.style.boxShadow = '0 0 5px 2px rgba(0, 123, 255, 0.5)';
+                    
+                    // Scroll to this element if needed
+                    parent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+        
+        // Handle keyboard shortcuts
+        function handleKeyDown(event) {
+            // Skip if user is typing in a text field
+            if (event.target.tagName === 'TEXTAREA' || event.target.tagName === 'INPUT') {
+                return;
+            }
+            
+            // Get all rating groups
+            const ratingGroups = Array.from(document.querySelectorAll('.rating-question'))
+                .map(question => {
+                    const options = question.querySelector('.rating-option');
+                    return options ? options.dataset.name : null;
+                })
+                .filter(name => name !== null);
+            
+            // Navigation between questions with arrow keys
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const currentIndex = ratingGroups.indexOf(currentFocusedRatingGroup);
+                if (currentIndex > 0) {
+                    currentFocusedRatingGroup = ratingGroups[currentIndex - 1];
+                    highlightFocusedGroup(currentFocusedRatingGroup);
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const currentIndex = ratingGroups.indexOf(currentFocusedRatingGroup);
+                if (currentIndex < ratingGroups.length - 1) {
+                    currentFocusedRatingGroup = ratingGroups[currentIndex + 1];
+                    highlightFocusedGroup(currentFocusedRatingGroup);
+                }
+            } 
+            // Rating selection with q,w,e,r,t keys
+            else if (['q', 'w', 'e', 'r', 't'].includes(event.key.toLowerCase())) {
+                event.preventDefault();
+                if (!currentFocusedRatingGroup) return;
+                
+                // Map keys to values
+                const keyToValue = {
+                    'q': 1,
+                    'w': 2,
+                    'e': 3,
+                    'r': 4,
+                    't': 5
+                };
+                
+                const value = keyToValue[event.key.toLowerCase()];
+                const options = document.querySelectorAll(`.rating-option[data-name="${currentFocusedRatingGroup}"]`);
+                
+                if (options.length >= value) {
+                    const option = options[value - 1];
+                    option.click(); // Trigger the click event on the option
+                    
+                    // Move to next question automatically
+                    const currentIndex = ratingGroups.indexOf(currentFocusedRatingGroup);
+                    if (currentIndex < ratingGroups.length - 1) {
+                        currentFocusedRatingGroup = ratingGroups[currentIndex + 1];
+                        highlightFocusedGroup(currentFocusedRatingGroup);
+                    }
+                }
+            }
+            // Navigation between questions with Page Up/Down
+            else if (event.key === 'PageUp') {
+                event.preventDefault();
+                document.getElementById('prevBtn').click();
+            } else if (event.key === 'PageDown') {
+                event.preventDefault();
+                document.getElementById('nextBtn').click();
+            }
+        }
+        
+        // Toggle sections (options and model info)
+        function toggleSection(id) {
+            const element = document.getElementById(id);
+            element.style.display = element.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // Save annotations
+        function saveAnnotations() {
+            const form = document.getElementById('annotationForm');
+            if (!form) return Promise.resolve(true);
+            
+            // Get comment text
+            const commentsArea = document.getElementById('comments');
+            const commentsText = commentsArea ? commentsArea.value.trim() : "";
+            
+            if (isMultiModel) {
+                // Multi-model mode
+                const osqChecked = document.querySelector('input[name="rating_osq"]:checked');
+                const multiansChecked = document.querySelector('input[name="rating_multians"]:checked');
+                
+                // Get all model ratings
+                const modelCount = currentQuestion.models ? currentQuestion.models.length : 0;
+                const modelRatings = [];
+                let allModelsRated = true;
+                
+                for (let i = 0; i < modelCount; i++) {
+                    const ratingChecked = document.querySelector(`input[name="rating_match_${i}"]:checked`);
+                    if (ratingChecked) {
+                        modelRatings.push(parseInt(ratingChecked.value));
+                    } else {
+                        modelRatings.push(null);
+                        allModelsRated = false;
+                    }
+                }
+                
+                // If no ratings are selected AND no comments, don't save
+                if (!osqChecked && !multiansChecked && modelRatings.every(r => r === null) && !commentsText) {
+                    return Promise.resolve(true); // Allow navigation without saving
+                }
+                
+                // Check if all required questions are answered
+                if (!osqChecked || !multiansChecked || !allModelsRated) {
+                    showSaveStatus('Please answer all questions for all models before proceeding.', false);
+                    return Promise.resolve(false);
+                }
+                
+                const data = {
+                    question_id: currentQuestionId,
+                    model: currentQuestion.models || [],
+                    thinking: currentQuestion.thinking_list || [],
+                    question_text: currentQuestion.question,
+                    answer: currentQuestion.target,
+                    response: currentQuestion.responses || [],
+                    rating_match: modelRatings,
+                    rating_osq: parseInt(osqChecked.value),
+                    rating_multians: parseInt(multiansChecked.value),
+                    comments: commentsText
+                };
+                
+                return sendSaveRequest(data);
+            } else {
+                // Single model mode - original code
+                // Check if there are any annotations to save
+                const matchChecked = document.querySelector('input[name="rating_match"]:checked');
+                const osqChecked = document.querySelector('input[name="rating_osq"]:checked');
+                const multiansChecked = document.querySelector('input[name="rating_multians"]:checked');
+                
+                // If no ratings are selected AND no comments, don't save
+                if (!matchChecked && !osqChecked && !multiansChecked && !commentsText) {
+                    return Promise.resolve(true); // Allow navigation without saving
+                }
+                
+                // Check if all required questions are answered
+                const requiredAnswered = [
+                    'rating_match',
+                    'rating_osq',
+                    'rating_multians'
+                ].every(name => {
+                    return document.querySelector(`input[name="${name}"]:checked`);
+                });
+                
+                // Check if fourth question is visible and if so, if it's answered
+                const correctnessContainer = document.getElementById('correctnessQuestionContainer');
+                const correctnessRequired = correctnessContainer.style.display === 'block';
+                const correctnessAnswered = document.querySelector('input[name="rating_correct"]:checked');
+                
+                if (!requiredAnswered || (correctnessRequired && !correctnessAnswered)) {
+                    showSaveStatus('Please answer all questions before proceeding.', false);
+                    return Promise.resolve(false);
+                }
+                
+                const data = {
+                    question_id: currentQuestionId,
+                    model: currentQuestion.model,
+                    thinking: currentQuestion.thinking,
+                    question_text: currentQuestion.question,
+                    answer: currentQuestion.target,
+                    response: currentQuestion.filtered_resps,
+                    rating_match: parseInt(matchChecked.value),
+                    rating_osq: parseInt(osqChecked.value),
+                    rating_multians: parseInt(multiansChecked.value),
+                    rating_correct: correctnessAnswered ? parseInt(correctnessAnswered.value) : null,
+                    comments: commentsText
+                };
+                
+                return sendSaveRequest(data);
+            }
+        }
+        
+        // Send save request to server
+        function sendSaveRequest(data) {
+            return fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSaveStatus('Annotations saved!', true);
+                    updateCompletedQuestions();
+                    return true;
+                } else {
+                    showSaveStatus('Error saving: ' + (data.error || 'Unknown error'), false);
+                    return false;
+                }
+            })
+            .catch(error => {
+                showSaveStatus('Error saving: ' + error, false);
+                return false;
+            });
+        }
+        
+        // Update the list of completed questions
+        function updateCompletedQuestions() {
+            return fetch('/api/completed')
+                .then(response => response.json())
+                .then(data => {
+                    completedQuestions = new Set(data.completed_questions.map(qid => String(qid)));
+                    // Update the selector options with the completed class
+                    $('#questionSelector option').each(function() {
+                        const qid = String($(this).val());
+                        if (completedQuestions.has(qid)) {
+                            $(this).addClass('completed-question');
+                            $(this).text(`Question ${qid} ✓`);
+                        } else {
+                            $(this).removeClass('completed-question');
+                            $(this).text(`Question ${qid}`);
+                        }
+                    });
+                    // Destroy and recreate the Select2 dropdown to refresh styling
+                    const currentVal = $('#questionSelector').val();
+                    $('#questionSelector').select2('destroy');
+                    $('#questionSelector').select2();
+                    $('#questionSelector').val(currentVal).trigger('change');
+                });
+        }
+        
+        function showSaveStatus(message, isSuccess) {
+            const statusElement = document.getElementById('saveStatus');
+            statusElement.textContent = message;
+            statusElement.className = 'save-status ' + (isSuccess ? 'success' : 'error');
+            
+            // Clear the status after a few seconds
+            setTimeout(() => {
+                statusElement.textContent = '';
+                statusElement.className = 'save-status';
+            }, 3000);
+        }
+        
+        // Update navigation buttons
+        function updateNavButtons() {
+            const currentIndex = questionIds.indexOf(String(currentQuestionId));
+            document.getElementById('prevBtn').disabled = currentIndex <= 0;
+            document.getElementById('nextBtn').disabled = currentIndex >= questionIds.length - 1;
+        }
+        
+        // Check if form is completely empty
+        function isFormEmpty() {
+            const form = document.getElementById('annotationForm');
+            if (!form) return true;
+            
+            if (isMultiModel) {
+                // Check if any rating is selected for multi-model mode
+                const osqChecked = document.querySelector('input[name="rating_osq"]:checked');
+                const multiansChecked = document.querySelector('input[name="rating_multians"]:checked');
+                
+                // Check if any model rating is selected
+                const modelCount = currentQuestion.models ? currentQuestion.models.length : 0;
+                let anyModelRated = false;
+                
+                for (let i = 0; i < modelCount; i++) {
+                    if (document.querySelector(`input[name="rating_match_${i}"]:checked`)) {
+                        anyModelRated = true;
+                        break;
+                    }
+                }
+                
+                const comments = document.getElementById('comments')?.value || '';
+                
+                return !osqChecked && !multiansChecked && !anyModelRated && !comments.trim();
+            } else {
+                // Original single-model check
+                const hasAnySelection = [
+                    'rating_match',
+                    'rating_osq',
+                    'rating_multians',
+                    'rating_correct'
+                ].some(name => {
+                    return document.querySelector(`input[name="${name}"]:checked`);
+                });
+                
+                const comments = document.getElementById('comments')?.value || '';
+                
+                return !hasAnySelection && !comments.trim();
+            }
+        }
+        
+        // Check if user can navigate away from current question
+        function canNavigate() {
+            // Allow navigation if form is completely empty
+            if (isFormEmpty()) {
+                return Promise.resolve(true);
+            }
+            
+            // For multi-model mode, check if all required fields are filled
+            if (isMultiModel) {
+                const osqChecked = document.querySelector('input[name="rating_osq"]:checked');
+                const multiansChecked = document.querySelector('input[name="rating_multians"]:checked');
+                
+                // Get all model ratings
+                const modelCount = currentQuestion.models ? currentQuestion.models.length : 0;
+                let allModelsRated = true;
+                
+                for (let i = 0; i < modelCount; i++) {
+                    const ratingChecked = document.querySelector(`input[name="rating_match_${i}"]:checked`);
+                    if (!ratingChecked) {
+                        allModelsRated = false;
+                        break;
+                    }
+                }
+                
+                // Check if all required questions are answered
+                if (!osqChecked || !multiansChecked || !allModelsRated) {
+                    showSaveStatus('Please answer all questions for all models before proceeding.', false);
+                    return Promise.resolve(false);
+                }
+            }
+            
+            // Otherwise, save annotations and return the result
+            return saveAnnotations();
+        }
+        
+        // Event listeners for navigation
+        document.getElementById('prevBtn').addEventListener('click', function() {
+            canNavigate().then(canProceed => {
+                if (!canProceed) {
+                    return;
+                }
+                const currentIndex = questionIds.indexOf(String(currentQuestionId));
+                if (currentIndex > 0) {
+                    const prevId = questionIds[currentIndex - 1];
+                    $('#questionSelector').val(prevId).trigger('change');
+                    fetchQuestion(prevId);
+                }
+            });
+        });
+        
+        document.getElementById('nextBtn').addEventListener('click', function() {
+            canNavigate().then(canProceed => {
+                if (!canProceed) {
+                    return;
+                }
+                const currentIndex = questionIds.indexOf(String(currentQuestionId));
+                if (currentIndex < questionIds.length - 1) {
+                    const nextId = questionIds[currentIndex + 1];
+                    $('#questionSelector').val(nextId).trigger('change');
+                    fetchQuestion(nextId);
+                }
+            });
+        });
+        
+        $('#questionSelector').on('change', function() {
+            const selectedId = String($(this).val());
+            if (selectedId !== String(currentQuestionId)) {
+                canNavigate().then(canProceed => {
+                    if (!canProceed) {
+                        $(this).val(currentQuestionId).trigger('change');
+                        return;
+                    }
+                    fetchQuestion(selectedId);
+                });
+            }
+        });
+        
+        // Toggle calculator widget
+        function toggleCalculator() {
+            const widget = document.getElementById('calculatorWidget');
+            const icon = document.getElementById('calculatorToggleIcon');
+            
+            if (widget.classList.contains('expanded')) {
+                widget.classList.remove('expanded');
+                icon.textContent = '▲';
+            } else {
+                widget.classList.add('expanded');
+                icon.textContent = '▼';
+            }
+        }
+        
+        // Calculator function
+        function calculateRelativeError() {
+            const num1 = parseFloat(document.getElementById('calcNum1').value);
+            const num2 = parseFloat(document.getElementById('calcNum2').value);
+            
+            if (isNaN(num1) || isNaN(num2)) {
+                document.getElementById('calculatorResult').textContent = 'Result: Please enter valid numbers';
+                document.getElementById('calculatorResult').className = 'calculator-result';
+                return;
+            }
+            
+            const mean = (num1 + num2) / 2;
+            if (mean === 0) {
+                document.getElementById('calculatorResult').textContent = 'Result: N/A (mean is zero)';
+                document.getElementById('calculatorResult').className = 'calculator-result';
+                return;
+            }
+            
+            const relativeError = Math.abs(num1 - num2) / Math.abs(mean);
+            const resultElement = document.getElementById('calculatorResult');
+            
+            // Convert to percentage and format with 2 decimal places
+            const errorPercent = (relativeError * 100).toFixed(2);
+            
+            // Set color based on threshold
+            if (relativeError <= 0.01) { // 1%
+                resultElement.className = 'calculator-result result-good';
+            } else {
+                resultElement.className = 'calculator-result result-bad';
+            }
+            
+            resultElement.textContent = `Result: ${errorPercent}%`;
+        }
+        
+        // Initialize calculator event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('calculateBtn').addEventListener('click', calculateRelativeError);
+            
+            // Also allow Enter key in the calculator fields
+            document.getElementById('calcNum1').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') calculateRelativeError();
+            });
+            
+            document.getElementById('calcNum2').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') calculateRelativeError();
+            });
+            
+            // Make calculator collapsed by default
+            document.getElementById('calculatorWidget').classList.remove('expanded');
+            
+            // Also initialize the other functionality
+            fetchQuestionIds();
+            updateCompletedQuestions();
+            
+            // Initialize the HuggingFace dataset integration
+            const useHfDataset = {{ use_hf_dataset|tojson }};
+            if (useHfDataset) {
+                console.log("Using HuggingFace dataset for Ameya");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+question_id,ameya_osq,nikhil_osq,difference
+recPL4ZPpVYxgMu57,5,1,4 -- nikhil is wrong (update to 4)
+recgXxEgllSGEpELP,1,5,4 -- ameya is wrong (5)
+recixxJmdux0d8LZQ,1,5,4 -- ameya is wrong (5)
+recNuT2oSnO86bxOx,4,1,3 -- update the question -- what is the final product?  -- done 
+recD8oX1KevFbl7bL,1,4,3 -- remove options from question, also remove question  -- nothing needs to be done as ameya marked it 1, 1 -- done 
+recLAgwx9vbgB5EHk,5,2,3 -- unique answer because of ring closing metathesis 
+rec32C1ZEapBnCC0E,5,2,3 -- update the question to make more specific (round to 1 decimal place). -- done 
+recA1i5ZAh0Uzclxp,5,2,3 -- osq is fine (4) but non-unique because 2 pathways (ideally can be made generative but two answers)
+reca44yABeO2fx7UB,5,2,3 -- nikhil osq is wrong (updated to 4) but question still seems to have multiple answers
+reccVBrYdwsB84fGy,1,4,3 -- needs options in the question  -- done
+recv7GsQg3f0fvB1f,1,4,3 -- osq 2, but definitely unique answer (explanation depends on options)
+recBGxVySx1pkrO1i,5,3,2 -- updated my rating to 4, trusting ameya 
+recuyeuT5rQ6qDt8F,4,2,2 -- update question but to what exactly? (indicate the precise (smallest) range)?? recheck with ameya -- done 
+recakFKZioXUuldcd,2,4,2 -- updated to idk -- recheck with ameya
+rechtUKxC6G67H7Pr,2,4,2 -- not specific, multiple answers
+reck1zKeCssmN82Ga,5,3,2 -- nikhil is wrong since major outcome is asked (updating to 4)
+recNAiPUKOulQbKVP,1,3,2 -- nikhil should be more specific (updated to 1)
+recgI6tUQ7RLJRWGx,5,3,2 -- label noise? as in answer is not specific enough it seems. recheck with ameya (done)
+recZt4x514UQNnsgy,1,3,2 -- unsure, udpated
+recDDxpS9s8cwkqfq,5,3,2 -- nikhil is wrong (updated to 4)
+recMicVBcqy1xM1jq,2,4,2 -- updated Ameya osq to 4. recheck with ameya (ameya should update?)
+recxsX66ktJ1Lwt4f,4,2,2 -- single answer only apparently, updated since info provided is sufficient
+recz3MfYHPRhsEQkW,5,3,2 -- updated Nikhil to 4,4. O3 is able to identify the compound X without its formula from the IR and NMR data. need to check with ameya ....
+recL9MFV5zmdlle5T,1,3,2 -- update question (identify the *molecular* formula), seems specific -- done 
+recJpyGtGIsxulevT,5,3,2 -- update question (round your answer, in Joules, to the nearest power of 10) -- done 
+recqLRu4BcJvlSANc,2,4,2 -- updated ameya osq to 4. recheck with ameya
+rec5eA17Qr1ucNLUf,5,3,2 -- update the question (which planet, and by how much probability mass) -- done 
+rechKl68Uc6H7vU0N,5,3,2 -- nikhil is wrong (updated to 4) since feedback also seems to say specific and unique 
+recb80OwMgNnceA9t,5,3,2 -- nikhil is wrong (updated to 4) BUT also recheck with ameya . Maybe there is only one answer?
+recpki12iG9RUGrz9,5,3,2 -- nikhil seems wrong (updated)
+recNu3MXkvWUzHZr9,5,3,2 -- update question (in years) -- done 
+recO3hvCWRGiG0odN,2,4,2 -- done. recheck with ameya
+recXvQ6gWAmyakrpD,5,3,2 -- update question (round upto 2 decimal places) -- done 
+recGFKDUd8qgz81Zl,4,2,2 -- change the question / most famous. Change the answer to 21cm neutral atomic hydrogen.   recheck with ameya -- NOT DOING. 
+recLSzwBUS3olCjhl,1,3,2 -- multiple answers, updated
+recFaL6j8UMhutXrc,4,2,2 -- update question to add major product. updated nikhil osq and multi to 4. seems specific and major product. recheck with ameya -- done. 
+recBhnXrUyTJ6WHIR,4,3,1 -- nothing to be done ....
+recafnH3RRnMBXEb1,4,3,1 -- updated ameya osq to 3. recheck with ameya (MUST NEEDED)
+recXsuOHRBLcyenF2,4,3,1 -- nikhil is wrong on osq (updated to 4), but question seems to have multiple answers
+recV1nqYQvpII94oC,4,3,1 -- Nikhil's osq updated to 4. recheck with ameya (MUST NEEDED)
+rec527dNeEtWJrYNl,4,3,1 -- update Nikhil to 4, 4. recheck with ameya
+receo3UUzRvWCqyfA,3,4,1 -- nothing to be done ....
+recjJ54TXc04enRkZ,4,3,1 -- Add "major" to the question. Update Nikhil to 4, 4. recheck with ameya (MUST NEEDED) -- done 
+recihePFulRgNKsIn,4,3,1 -- nikhil seems to be wrong on osq (updated to 4), but question seems to have multiple answers
+recVvpD8miVjmmyfe,4,3,1 -- nikhil updated to 4, 4. recheck with ameya (MUST NEEDED)
+recZ13cwgDQf9jRd9,4,3,1 -- nikhil seems wrong on osq (updated to 4)
+recxTy0x7M6T9ikc0,4,3,1 -- nikhil updated to 4, 4. recheck with Ameya, not sure about multiple answers here (for reactant specifically..)
+recZWeueB7lSPR6wN,3,4,1 -- ameya updated to 4, 4. recheck with ameya
+recUOePh79cp4T2Bg,4,3,1 -- nikhil updated to 4, 4. recheck with ameya (MUST NEEDED)
+recK9F5aqdaybl8bb,4,3,1 -- nikhil updated to 4, 4. recheck with ameya
+recOvqPKUtyy9ISA1,4,3,1 -- nikhil seems to be wrong (updating both to 4), based on explanation in the dataset
+reco8WSc71p8zAv4q,4,3,1 -- nikhil updated to 4, 4. recheck with ameya
+rec0yTRmO1o1xCA6H,4,3,1 -- nikhil's osq updated to 4. recheck with ameya (MUST NEEDED)
+recBtVK8rBVtIlXDq,4,3,1 -- no need to update. Ameya's annotations seem skeptical here?

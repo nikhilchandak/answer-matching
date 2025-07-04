@@ -1,0 +1,5 @@
+description: "The following is a multiple choice question about history.\n"
+include: "_default_template_yaml"
+task: "mmlu_pro_mcq_history"
+task_alias: "history"
+process_docs: !function utils.process_history
