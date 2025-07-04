@@ -7,7 +7,7 @@
 <div align="center">
   <img src="data/mmlu_pro/fig1-illustration4.jpg" alt="Answer Matching vs MCQ Illustration" width="600"/>
   <br/>
-  <em>Observation: Models cannot solve the question but can guess the correct answer choice. Hence, multiple choice evaluation don't measure the true generative performance of language models which we fix via answer matching and show it has high alignment with human evaluations.</em>
+  <em>Models cannot solve the question but can guess the correct answer choice. Thus, MCQs don't measure the true generative performance of language models which we fix via answer matching and show it has high alignment with human grading.</em>
 </div>
 
 ---
@@ -45,12 +45,17 @@ uv pip install -e ".[api,wandb,vllm,dev]"
 
 ## 📂 Directory Overview
 
-- **mcq_classifier/**: Code to train a classifier on <b>choices-only data</b> from MCQ benchmarks (e.g., MMLU Pro, SuperGQPA, YourBench, TruthfulQA, HellaSwag, ARC) using HuggingFace Transformers and Accelerate. Includes both language and vision MCQ scripts. See its README for details.
-- **src/query_models/**: Scripts for querying various language models with different question types (free-form, MCQ) and extracting their responses. Supports datasets like GPQA and MMLU-Pro.
-- **src/filtering/**: Tools for filtering and combining QA datasets, including scripts for cleaning, merging, and scoring questions and answers.
-- **src/cost_analysis/**: Tools for analyzing computational costs and token usage across different evaluation methods, including cost breakdowns and visualizations.
-- **src/judge_w_gt/**: Framework for evaluating model responses using LLMs as matchers or judges, supporting both ground-truth (with reference answer) and free-form (without reference answer) judging for various question types.
-- **src/visualize_resps/**: Flask-based annotation interface for labeling model responses; used for human annotation and navigation of QA data.
+- `mcq_classifier/`: Code to train a classifier on <b>choices-only data</b> from MCQ benchmarks (e.g., MMLU Pro, SuperGQPA, YourBench, TruthfulQA, HellaSwag, ARC) using HuggingFace Transformers and Accelerate. Includes both language and vision MCQ scripts. See its README for details.
+
+- `src/query_models/`: Scripts for querying various language models with different question types (free-form, MCQ) and extracting their responses. Supports datasets like GPQA and MMLU-Pro.
+
+- `src/filtering/`: Tools for filtering and combining QA datasets, including scripts for cleaning, merging, and scoring questions and answers.
+
+- `src/cost_analysis/`: Tools for analyzing computational costs and token usage across different evaluation methods, including cost breakdowns and visualizations.
+
+- `src/judge_w_gt/`: Framework for evaluating model responses using LLMs as matchers or judges, supporting both ground-truth (with reference answer) and free-form (without reference answer) judging for various question types.
+
+- `src/visualize_resps/`: Flask-based annotation interface for labeling model responses; used for human annotation and navigation of QA data.
 
 ---
 
